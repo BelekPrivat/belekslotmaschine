@@ -108,6 +108,18 @@ h1 { color: gold; font-size: 3rem; }
 </div>
 
 <script>
+/* ───── DOM ELEMENTE ───── */
+const status = document.getElementById("status");
+const jackpot = document.getElementById("jackpot");
+const stats = document.getElementById("stats");
+const info = document.getElementById("info");
+const incomeTimer = document.getElementById("incomeTimer");
+const leaderboardList = document.getElementById("leaderboardList");
+
+const r1 = document.getElementById("r1");
+const r2 = document.getElementById("r2");
+const r3 = document.getElementById("r3");
+
 /* ───── SPIELERNAME ───── */
 let playerName = localStorage.getItem("player_name");
 if (!playerName) {
@@ -150,8 +162,7 @@ function applyOfflineIncome() {
     const minutes = Math.floor(diff / INCOME_INTERVAL);
 
     if (minutes > 0) {
-        const income = minutes * INCOME_PER_MIN;
-        data.balance += income;
+        data.balance += minutes * INCOME_PER_MIN;
         lastIncome += minutes * INCOME_INTERVAL;
         localStorage.setItem("last_income_time", lastIncome);
         save();
@@ -161,9 +172,19 @@ function applyOfflineIncome() {
 function startCountdown() {
     setInterval(() => {
         const now = Date.now();
-        const remaining = Math.max(0, INCOME_INTERVAL - (now - lastIncome));
+        const diff = now - lastIncome;
+
+        if (diff >= INCOME_INTERVAL) {
+            data.balance += INCOME_PER_MIN;
+            lastIncome = now;
+            localStorage.setItem("last_income_time", lastIncome);
+            save();
+            updateUI();
+        }
+
+        const remaining = Math.max(0, INCOME_INTERVAL - diff);
         const sec = Math.ceil(remaining / 1000);
-        document.getElementById("incomeTimer").innerText =
+        incomeTimer.innerText =
             `⏳ Nächstes Einkommen (+5€) in: ${sec}s`;
     }, 1000);
 }
@@ -183,6 +204,7 @@ function updateUI() {
     stats.innerText = `Spins: ${data.spins} | RTP: ${rtp}%`;
 }
 
+/* ───── SPIEL ───── */
 function randomSym() {
     return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
 }
@@ -205,6 +227,7 @@ function casinoSpin() {
 
 function spin() {
     if (data.balance < data.bet) return;
+
     data.balance -= data.bet;
     data.jackpot += Math.floor(data.bet * 0.05);
     data.spins++;
@@ -268,9 +291,8 @@ function updateLeaderboard() {
 
 /* ───── START ───── */
 applyOfflineIncome();
-startCountdown();
 updateUI();
 updateLeaderboard();
+startCountdown();
 </script>
-</body>
-</html>
+
