@@ -60,24 +60,15 @@ h1 {
     margin: 15px;
 }
 
-.controls {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.controls button, .controls input {
+.controls button {
     font-size: 1.1rem;
     padding: 12px 18px;
+    margin: 5px;
+    cursor: pointer;
 }
 
-.controls input {
-    width: 110px;
-    text-align: center;
-}
-
-.spin { background: green; color: white; cursor: pointer; }
-.allin { background: red; color: white; cursor: pointer; }
+.spin { background: green; color: white; }
+.allin { background: red; color: white; }
 
 .stats {
     margin-top: 10px;
@@ -104,10 +95,6 @@ h1 {
 
 <div class="controls">
     <button onclick="setBet()">🎯 Einsatz setzen</button>
-
-    <!-- 🔥 NEUES EINSATZ-FELD -->
-    <input id="betInput" type="number" min="10" step="10">
-
     <button class="allin" onclick="allIn()">💥 ALL IN</button>
     <button class="spin" onclick="spin()">▶ SPIN</button>
 </div>
@@ -138,8 +125,6 @@ let data = JSON.parse(localStorage.getItem("slot_save")) || {
     totalWin: 0
 };
 
-const betInput = document.getElementById("betInput");
-
 function save() {
     localStorage.setItem("slot_save", JSON.stringify(data));
 }
@@ -151,30 +136,9 @@ function updateUI() {
     document.getElementById("jackpot").innerText =
         `💎 JACKPOT: ${data.jackpot} €`;
 
-    betInput.value = data.bet;
-
-    let rtp = data.totalBet
-        ? (data.totalWin / data.totalBet * 100).toFixed(2)
-        : "0.00";
-
+    let rtp = data.totalBet ? (data.totalWin / data.totalBet * 100).toFixed(2) : "0.00";
     document.getElementById("stats").innerText =
         `Spins: ${data.spins} | RTP: ${rtp}%`;
-}
-
-function applyBetFromInput() {
-    let v = parseInt(betInput.value);
-    if (isNaN(v)) return;
-    if (v < MIN_BET) v = MIN_BET;
-    if (v > data.balance) v = data.balance;
-    data.bet = v;
-    updateUI();
-    save();
-}
-
-betInput.addEventListener("change", applyBetFromInput);
-
-function randomSym() {
-    return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
 }
 
 function casinoSpin() {
@@ -196,8 +160,11 @@ function casinoSpin() {
     }
 }
 
+function randomSym() {
+    return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+}
+
 function spin() {
-    applyBetFromInput();
     if (data.balance < data.bet) return;
 
     data.balance -= data.bet;
@@ -212,7 +179,8 @@ function spin() {
         document.getElementById("r1").innerText = randomSym();
         document.getElementById("r2").innerText = randomSym();
         document.getElementById("r3").innerText = randomSym();
-        if (--count === 0) {
+        count--;
+        if (count === 0) {
             clearInterval(interval);
             finishSpin();
         }
@@ -229,7 +197,7 @@ function finishSpin() {
     if (win > 0) {
         data.balance += win;
         data.totalWin += win;
-        if (a === "💎") data.jackpot = JACKPOT_START;
+        data.jackpot = (a === "💎") ? JACKPOT_START : data.jackpot;
         document.getElementById("info").innerText = `🏆 GEWONNEN: +${win} €`;
     } else {
         document.getElementById("info").innerText = "😢 Kein Gewinn";
@@ -253,7 +221,6 @@ function setBet() {
 function allIn() {
     data.bet = data.balance;
     updateUI();
-    save();
 }
 
 updateUI();
