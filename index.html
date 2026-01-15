@@ -22,28 +22,15 @@ html, body {
     height: 100vh;
 }
 
-h1 {
-    color: gold;
-    font-size: 3rem;
-    margin-bottom: 10px;
-}
+h1 { color: gold; font-size: 3rem; }
 
-.status {
-    color: cyan;
-    font-size: 1.2rem;
-    margin-bottom: 10px;
-}
-
-.jackpot {
-    color: gold;
-    font-size: 1.4rem;
-    margin-bottom: 30px;
-}
+.status { color: cyan; font-size: 1.2rem; }
+.jackpot { color: gold; font-size: 1.4rem; }
 
 .reels {
     display: flex;
     gap: 30px;
-    margin-bottom: 20px;
+    margin: 20px 0;
 }
 
 .reel {
@@ -55,10 +42,7 @@ h1 {
     text-align: center;
 }
 
-.info {
-    font-size: 1.2rem;
-    margin: 15px;
-}
+.info { font-size: 1.2rem; margin: 10px; }
 
 .controls button {
     font-size: 1.1rem;
@@ -70,21 +54,16 @@ h1 {
 .spin { background: green; color: white; }
 .allin { background: red; color: white; }
 
-.stats {
-    margin-top: 10px;
-    color: #aaa;
-}
+.stats { color: #aaa; margin-top: 10px; }
 
-/* 🏆 Leaderboard */
 #leaderboard {
     position: fixed;
     top: 20px;
     right: 20px;
-    background: #000;
+    background: black;
     border: 2px solid gold;
-    padding: 12px;
+    padding: 10px;
     width: 220px;
-    font-size: 0.95rem;
 }
 
 #leaderboard h3 {
@@ -108,6 +87,7 @@ h1 {
 
 <div class="status" id="status"></div>
 <div class="jackpot" id="jackpot"></div>
+<div class="stats" id="incomeTimer"></div>
 
 <div class="reels">
     <div class="reel" id="r1">❔</div>
@@ -128,15 +108,15 @@ h1 {
 </div>
 
 <script>
-/* ───────── SPIELERNAME ───────── */
+/* ───── SPIELERNAME ───── */
 let playerName = localStorage.getItem("player_name");
 if (!playerName) {
-    playerName = prompt("Willkommen! Bitte gib deinen Spielernamen ein:");
+    playerName = prompt("Willkommen! Spielername:");
     if (!playerName) playerName = "Gast";
     localStorage.setItem("player_name", playerName);
 }
 
-/* ───────── SLOT LOGIK (UNVERÄNDERT) ───────── */
+/* ───── SLOT LOGIK ───── */
 const SYMBOLS = ["🍒","🍋","🍊","🔔","⭐","BAR","7️⃣","💎"];
 const JACKPOT_START = 5000;
 const MIN_BET = 10;
@@ -158,24 +138,49 @@ let data = JSON.parse(localStorage.getItem("slot_save")) || {
     totalWin: 0
 };
 
+/* ───── ZEIT-GUTHABEN ───── */
+const INCOME_PER_MIN = 5;
+const INCOME_INTERVAL = 60 * 1000;
+
+let lastIncome = parseInt(localStorage.getItem("last_income_time")) || Date.now();
+
+function applyOfflineIncome() {
+    const now = Date.now();
+    const diff = now - lastIncome;
+    const minutes = Math.floor(diff / INCOME_INTERVAL);
+
+    if (minutes > 0) {
+        const income = minutes * INCOME_PER_MIN;
+        data.balance += income;
+        lastIncome += minutes * INCOME_INTERVAL;
+        localStorage.setItem("last_income_time", lastIncome);
+        save();
+    }
+}
+
+function startCountdown() {
+    setInterval(() => {
+        const now = Date.now();
+        const remaining = Math.max(0, INCOME_INTERVAL - (now - lastIncome));
+        const sec = Math.ceil(remaining / 1000);
+        document.getElementById("incomeTimer").innerText =
+            `⏳ Nächstes Einkommen (+5€) in: ${sec}s`;
+    }, 1000);
+}
+
+/* ───── UI ───── */
 function save() {
     localStorage.setItem("slot_save", JSON.stringify(data));
     updateLeaderboard();
 }
 
 function updateUI() {
-    document.getElementById("status").innerText =
+    status.innerText =
         `👤 ${playerName} | 💰 ${data.balance} € | 🎯 Einsatz: ${data.bet} €`;
+    jackpot.innerText = `💎 JACKPOT: ${data.jackpot} €`;
 
-    document.getElementById("jackpot").innerText =
-        `💎 JACKPOT: ${data.jackpot} €`;
-
-    let rtp = data.totalBet
-        ? (data.totalWin / data.totalBet * 100).toFixed(2)
-        : "0.00";
-
-    document.getElementById("stats").innerText =
-        `Spins: ${data.spins} | RTP: ${rtp}%`;
+    let rtp = data.totalBet ? (data.totalWin / data.totalBet * 100).toFixed(2) : "0.00";
+    stats.innerText = `Spins: ${data.spins} | RTP: ${rtp}%`;
 }
 
 function randomSym() {
@@ -185,39 +190,34 @@ function randomSym() {
 function casinoSpin() {
     let roll = Math.random();
     let sum = 0;
-
     for (let [chance, payout] of PAYOUT_TABLE) {
         sum += chance;
         if (roll <= sum) {
             if (payout === 0)
                 return [randomSym(), randomSym(), randomSym(), 0];
-
             if (payout === "JACKPOT")
                 return ["💎","💎","💎", data.jackpot];
-
             let s = randomSym();
-            return [s, s, s, payout * data.bet];
+            return [s,s,s,payout * data.bet];
         }
     }
 }
 
 function spin() {
     if (data.balance < data.bet) return;
-
     data.balance -= data.bet;
     data.jackpot += Math.floor(data.bet * 0.05);
     data.spins++;
     data.totalBet += data.bet;
 
-    document.getElementById("info").innerText = "🎲 Spinning...";
-
-    let count = 15;
-    let interval = setInterval(() => {
+    info.innerText = "🎲 Spinning...";
+    let c = 15;
+    let i = setInterval(() => {
         r1.innerText = randomSym();
         r2.innerText = randomSym();
         r3.innerText = randomSym();
-        if (--count === 0) {
-            clearInterval(interval);
+        if (--c === 0) {
+            clearInterval(i);
             finishSpin();
         }
     }, 70);
@@ -225,64 +225,52 @@ function spin() {
 
 function finishSpin() {
     let [a,b,c,win] = casinoSpin();
-
-    r1.innerText = a;
-    r2.innerText = b;
-    r3.innerText = c;
+    r1.innerText = a; r2.innerText = b; r3.innerText = c;
 
     if (win > 0) {
         data.balance += win;
         data.totalWin += win;
         if (a === "💎") data.jackpot = JACKPOT_START;
         info.innerText = `🏆 GEWONNEN: +${win} €`;
-    } else {
-        info.innerText = "😢 Kein Gewinn";
-    }
+    } else info.innerText = "😢 Kein Gewinn";
 
     save();
     updateUI();
 }
 
 function setBet() {
-    let v = prompt("Einsatz festlegen:", data.bet);
+    let v = prompt("Einsatz:", data.bet);
     if (!v) return;
     v = parseInt(v);
-    if (v >= MIN_BET && v <= data.balance) {
-        data.bet = v;
-        updateUI();
-        save();
-    }
+    if (v >= MIN_BET && v <= data.balance) data.bet = v;
+    updateUI(); save();
 }
 
 function allIn() {
     data.bet = data.balance;
-    updateUI();
-    save();
+    updateUI(); save();
 }
 
-/* ───────── LEADERBOARD ───────── */
+/* ───── LEADERBOARD ───── */
 function updateLeaderboard() {
     let board = JSON.parse(localStorage.getItem("leaderboard")) || [];
-
     board = board.filter(p => p.name !== playerName);
-    board.push({ name: playerName, balance: data.balance });
-
-    board.sort((a,b) => b.balance - a.balance);
-    board = board.slice(0, 10);
-
+    board.push({name: playerName, balance: data.balance});
+    board.sort((a,b)=>b.balance-a.balance);
+    board = board.slice(0,10);
     localStorage.setItem("leaderboard", JSON.stringify(board));
 
-    const list = document.getElementById("leaderboardList");
-    list.innerHTML = "";
-    board.forEach((p, i) => {
-        list.innerHTML += `${i+1}. ${p.name}: ${p.balance} €<br>`;
+    leaderboardList.innerHTML = "";
+    board.forEach((p,i)=>{
+        leaderboardList.innerHTML += `${i+1}. ${p.name}: ${p.balance} €<br>`;
     });
 }
 
+/* ───── START ───── */
+applyOfflineIncome();
+startCountdown();
 updateUI();
 updateLeaderboard();
 </script>
 </body>
 </html>
-
-
