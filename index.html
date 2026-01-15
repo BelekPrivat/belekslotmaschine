@@ -4,13 +4,17 @@
 <meta charset="UTF-8">
 <title>🎰 Neon Royal Jackpot</title>
 
+<!-- FIREBASE -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
 <style>
 html, body {
     margin: 0;
     padding: 0;
     background: #111;
     color: white;
-    font-family: Arial, sans-serif;
+    font-family: Arial;
     height: 100%;
 }
 
@@ -37,24 +41,19 @@ h1 { color: gold; font-size: 3rem; }
     font-size: 5rem;
     background: black;
     padding: 20px;
-    border: 5px ridge #555;
+    border: 5px ridge gold;
     width: 100px;
     text-align: center;
 }
-
-.info { font-size: 1.2rem; margin: 10px; }
 
 .controls button {
     font-size: 1.1rem;
     padding: 12px 18px;
     margin: 5px;
-    cursor: pointer;
 }
 
 .spin { background: green; color: white; }
 .allin { background: red; color: white; }
-
-.stats { color: #aaa; margin-top: 10px; }
 
 #leaderboard {
     position: fixed;
@@ -67,7 +66,7 @@ h1 { color: gold; font-size: 3rem; }
 }
 
 #leaderboard h3 {
-    margin: 0 0 8px;
+    margin: 0 0 10px;
     color: gold;
     text-align: center;
 }
@@ -77,17 +76,16 @@ h1 { color: gold; font-size: 3rem; }
 <body>
 
 <div id="leaderboard">
-    <h3>🏆 Leaderboard</h3>
+    <h3>🏆 Global</h3>
     <div id="leaderboardList"></div>
 </div>
 
 <div id="app">
-
 <h1>🎰 NEON ROYAL JACKPOT 🎰</h1>
 
 <div class="status" id="status"></div>
 <div class="jackpot" id="jackpot"></div>
-<div class="stats" id="incomeTimer"></div>
+<div class="status" id="timer"></div>
 
 <div class="reels">
     <div class="reel" id="r1">❔</div>
@@ -95,204 +93,130 @@ h1 { color: gold; font-size: 3rem; }
     <div class="reel" id="r3">❔</div>
 </div>
 
-<div class="info" id="info"></div>
-
 <div class="controls">
-    <button onclick="setBet()">🎯 Einsatz setzen</button>
+    <button onclick="setBet()">🎯 Einsatz</button>
     <button class="allin" onclick="allIn()">💥 ALL IN</button>
     <button class="spin" onclick="spin()">▶ SPIN</button>
 </div>
-
-<div class="stats" id="stats"></div>
-
 </div>
 
 <script>
-/* ───── DOM ELEMENTE ───── */
-const status = document.getElementById("status");
-const jackpot = document.getElementById("jackpot");
-const stats = document.getElementById("stats");
-const info = document.getElementById("info");
-const incomeTimer = document.getElementById("incomeTimer");
-const leaderboardList = document.getElementById("leaderboardList");
+/* ───── FIREBASE CONFIG ───── */
+firebase.initializeApp({
+  apiKey: "AIzaSyBqJub5JZstuXNlemSLc9HFziEs11gA70k",
+  authDomain: "slot-site-dce13.firebaseapp.com",
+  projectId: "slot-site-dce13"
+});
+const db = firebase.firestore();
 
-const r1 = document.getElementById("r1");
-const r2 = document.getElementById("r2");
-const r3 = document.getElementById("r3");
-
-/* ───── SPIELERNAME ───── */
+/* ───── NAME ───── */
 let playerName = localStorage.getItem("player_name");
 if (!playerName) {
-    playerName = prompt("Willkommen! Spielername:");
-    if (!playerName) playerName = "Gast";
+    playerName = prompt("Spielername:");
     localStorage.setItem("player_name", playerName);
 }
 
-/* ───── SLOT LOGIK ───── */
-const SYMBOLS = ["🍒","🍋","🍊","🔔","⭐","BAR","7️⃣","💎"];
-const JACKPOT_START = 5000;
+/* ───── KONFIG ───── */
+const SYMBOLS = ["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
 const MIN_BET = 10;
+const JACKPOT_START = 5000;
+const INCOME_PER_MIN = 5;
+const INTERVAL = 60000;
 
-const PAYOUT_TABLE = [
-    [0.70, 0],
-    [0.20, 2],
-    [0.08, 5],
-    [0.018, 20],
-    [0.002, "JACKPOT"]
-];
-
-let data = JSON.parse(localStorage.getItem("slot_save")) || {
-    balance: 500,
+let data = {
+    balance: 5000,
     bet: 10,
     jackpot: JACKPOT_START,
-    spins: 0,
-    totalBet: 0,
-    totalWin: 0
+    lastIncome: Date.now()
 };
 
-/* ───── ZEIT-GUTHABEN ───── */
-const INCOME_PER_MIN = 5;
-const INCOME_INTERVAL = 60 * 1000;
+/* ───── SERVER SYNC ───── */
+async function loadPlayer() {
+    const ref = db.collection("players").doc(playerName);
+    const doc = await ref.get();
 
-let lastIncome = parseInt(localStorage.getItem("last_income_time")) || Date.now();
+    if (doc.exists) {
+        data = doc.data();
+        applyIncome();
+    } else {
+        await ref.set(data);
+    }
+    updateUI();
+}
 
-function applyOfflineIncome() {
+async function applyIncome() {
     const now = Date.now();
-    const diff = now - lastIncome;
-    const minutes = Math.floor(diff / INCOME_INTERVAL);
-
+    const minutes = Math.floor((now - data.lastIncome) / INTERVAL);
     if (minutes > 0) {
         data.balance += minutes * INCOME_PER_MIN;
-        lastIncome += minutes * INCOME_INTERVAL;
-        localStorage.setItem("last_income_time", lastIncome);
-        save();
+        data.lastIncome += minutes * INTERVAL;
+        await savePlayer();
     }
 }
 
-function startCountdown() {
-    setInterval(() => {
-        const now = Date.now();
-        const diff = now - lastIncome;
-
-        if (diff >= INCOME_INTERVAL) {
-            data.balance += INCOME_PER_MIN;
-            lastIncome = now;
-            localStorage.setItem("last_income_time", lastIncome);
-            save();
-            updateUI();
-        }
-
-        const remaining = Math.max(0, INCOME_INTERVAL - diff);
-        const sec = Math.ceil(remaining / 1000);
-        incomeTimer.innerText =
-            `⏳ Nächstes Einkommen (+5€) in: ${sec}s`;
-    }, 1000);
+async function savePlayer() {
+    await db.collection("players").doc(playerName).set(data);
 }
 
-/* ───── UI ───── */
-function save() {
-    localStorage.setItem("slot_save", JSON.stringify(data));
-    updateLeaderboard();
-}
+/* ───── TIMER ───── */
+setInterval(() => {
+    const remaining = Math.max(0, INTERVAL - (Date.now() - data.lastIncome));
+    timer.innerText = `⏳ +5€ in ${Math.ceil(remaining/1000)}s`;
+}, 1000);
 
-function updateUI() {
-    status.innerText =
-        `👤 ${playerName} | 💰 ${data.balance} € | 🎯 Einsatz: ${data.bet} €`;
-    jackpot.innerText = `💎 JACKPOT: ${data.jackpot} €`;
-
-    let rtp = data.totalBet ? (data.totalWin / data.totalBet * 100).toFixed(2) : "0.00";
-    stats.innerText = `Spins: ${data.spins} | RTP: ${rtp}%`;
-}
-
-/* ───── SPIEL ───── */
+/* ───── SLOT ───── */
 function randomSym() {
-    return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-}
-
-function casinoSpin() {
-    let roll = Math.random();
-    let sum = 0;
-    for (let [chance, payout] of PAYOUT_TABLE) {
-        sum += chance;
-        if (roll <= sum) {
-            if (payout === 0)
-                return [randomSym(), randomSym(), randomSym(), 0];
-            if (payout === "JACKPOT")
-                return ["💎","💎","💎", data.jackpot];
-            let s = randomSym();
-            return [s,s,s,payout * data.bet];
-        }
-    }
+    return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
 }
 
 function spin() {
     if (data.balance < data.bet) return;
-
     data.balance -= data.bet;
-    data.jackpot += Math.floor(data.bet * 0.05);
-    data.spins++;
-    data.totalBet += data.bet;
 
-    info.innerText = "🎲 Spinning...";
-    let c = 15;
-    let i = setInterval(() => {
-        r1.innerText = randomSym();
-        r2.innerText = randomSym();
-        r3.innerText = randomSym();
-        if (--c === 0) {
-            clearInterval(i);
-            finishSpin();
-        }
-    }, 70);
-}
+    r1.innerText = randomSym();
+    r2.innerText = randomSym();
+    r3.innerText = randomSym();
 
-function finishSpin() {
-    let [a,b,c,win] = casinoSpin();
-    r1.innerText = a; r2.innerText = b; r3.innerText = c;
-
-    if (win > 0) {
+    if (Math.random() < 0.2) {
+        const win = data.bet * 5;
         data.balance += win;
-        data.totalWin += win;
-        if (a === "💎") data.jackpot = JACKPOT_START;
-        info.innerText = `🏆 GEWONNEN: +${win} €`;
-    } else info.innerText = "😢 Kein Gewinn";
-
-    save();
+    }
+    savePlayer();
     updateUI();
+    loadLeaderboard();
 }
 
 function setBet() {
-    let v = prompt("Einsatz:", data.bet);
-    if (!v) return;
-    v = parseInt(v);
+    let v = parseInt(prompt("Einsatz:", data.bet));
     if (v >= MIN_BET && v <= data.balance) data.bet = v;
-    updateUI(); save();
+    updateUI();
 }
 
 function allIn() {
     data.bet = data.balance;
-    updateUI(); save();
+    updateUI();
+}
+
+/* ───── UI ───── */
+function updateUI() {
+    status.innerText = `👤 ${playerName} | 💰 ${data.balance} € | 🎯 ${data.bet} €`;
+    jackpot.innerText = `💎 JACKPOT: ${data.jackpot} €`;
 }
 
 /* ───── LEADERBOARD ───── */
-function updateLeaderboard() {
-    let board = JSON.parse(localStorage.getItem("leaderboard")) || [];
-    board = board.filter(p => p.name !== playerName);
-    board.push({name: playerName, balance: data.balance});
-    board.sort((a,b)=>b.balance-a.balance);
-    board = board.slice(0,10);
-    localStorage.setItem("leaderboard", JSON.stringify(board));
-
+async function loadLeaderboard() {
+    const snap = await db.collection("players")
+        .orderBy("balance","desc").limit(10).get();
     leaderboardList.innerHTML = "";
-    board.forEach((p,i)=>{
-        leaderboardList.innerHTML += `${i+1}. ${p.name}: ${p.balance} €<br>`;
+    snap.forEach((d,i)=>{
+        leaderboardList.innerHTML += `${i+1}. ${d.id}: ${d.data().balance} €<br>`;
     });
 }
 
 /* ───── START ───── */
-applyOfflineIncome();
-updateUI();
-updateLeaderboard();
-startCountdown();
+loadPlayer();
+loadLeaderboard();
 </script>
+</body>
+</html>
 
