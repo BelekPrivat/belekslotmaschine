@@ -128,6 +128,17 @@ const db = firebase.firestore();
 
 /* ───── VARS ───── */
 const SYMBOLS = ["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
+
+const PAYTABLE = {
+    "🍒": 2,
+    "🍋": 3,
+    "🍊": 4,
+    "🔔": 6,
+    "⭐": 8,
+    "7️⃣": 10,
+    "💎": 20
+};
+
 const MIN_BET = 1;
 const INCOME_PER_MIN = 5;
 const INTERVAL = 60000;
@@ -164,7 +175,7 @@ async function askForName() {
     }
 }
 
-/* ───── LOAD PLAYER ───── */
+/* ───── LOAD / SAVE ───── */
 async function loadPlayer() {
     const ref = db.collection("players").doc(playerName);
     const doc = await ref.get();
@@ -177,7 +188,6 @@ async function loadPlayer() {
     updateUI();
 }
 
-/* ───── SAVE ───── */
 function savePlayer() {
     db.collection("players").doc(playerName).set(data);
 }
@@ -199,7 +209,7 @@ setInterval(() => {
     timer.innerText = `⏳ Einkommen in ${Math.ceil(remain / 1000)}s`;
 }, 1000);
 
-/* ───── SLOT (FIXED LOGIC) ───── */
+/* ───── SLOT ───── */
 function randomSym() {
     return SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
 }
@@ -217,9 +227,11 @@ function spin() {
     r2.innerText = s2;
     r3.innerText = s3;
 
-    // ✅ Gewinn NUR wenn Anzeige passt
+    // 🎯 KLASSISCHE 3-WALZEN-LOGIK
     if (s1 === s2 && s2 === s3) {
-        data.balance += data.bet * 5;
+        const multiplier = PAYTABLE[s1] || 0;
+        const win = data.bet * multiplier;
+        data.balance += win;
     }
 
     savePlayer();
@@ -229,7 +241,7 @@ function spin() {
 
 function setBet() {
     const v = parseInt(prompt("Einsatz:", data.bet));
-    if (v >= MIN_BET && v <= data.balance) {
+    if (!isNaN(v) && v >= MIN_BET && v <= data.balance) {
         data.bet = v;
         updateUI();
     }
@@ -273,4 +285,5 @@ async function loadLeaderboard() {
 
 </body>
 </html>
+
 
