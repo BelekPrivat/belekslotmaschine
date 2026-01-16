@@ -67,7 +67,7 @@ h1 { color: gold; font-size: 3rem; }
     color: cyan;
 }
 
-/* RECHTE SEITE */
+/* RECHTS */
 #leaderboard {
     width: 45%;
     background: black;
@@ -83,21 +83,13 @@ h1 { color: gold; font-size: 3rem; }
 
 .section h3 {
     color: gold;
-    margin-bottom: 10px;
     text-align: center;
-}
-
-/* GEWINN LOG */
-#winLog {
-    font-size: 1.1rem;
-    line-height: 1.6;
 }
 
 /* PAYTABLE */
 #paytable table {
     width: 100%;
     border-collapse: collapse;
-    font-size: 1.2rem;
 }
 
 #paytable th, #paytable td {
@@ -106,9 +98,7 @@ h1 { color: gold; font-size: 3rem; }
     text-align: center;
 }
 
-#paytable th {
-    color: gold;
-}
+#paytable th { color: gold; }
 </style>
 </head>
 
@@ -132,7 +122,7 @@ h1 { color: gold; font-size: 3rem; }
     <div class="controls">
         <button onclick="setBet()">🎯 Einsatz</button>
         <button class="allin" onclick="allIn()">💥 ALL IN</button>
-        <button class="spin">▶ SPIN</button>
+        <button class="spin" onclick="spin()">▶ SPIN</button>
     </div>
 
     <div id="playerInfo" class="player-info"></div>
@@ -154,7 +144,7 @@ h1 { color: gold; font-size: 3rem; }
     <div class="section" id="paytable">
         <h3>📊 Paytable</h3>
         <table>
-            <tr><th>Symbol</th><th>3x Gewinn</th></tr>
+            <tr><th>Kombination</th><th>Gewinn</th></tr>
             <tr><td>🍒🍒🍒</td><td>x2</td></tr>
             <tr><td>🍋🍋🍋</td><td>x3</td></tr>
             <tr><td>🍊🍊🍊</td><td>x4</td></tr>
@@ -179,15 +169,7 @@ const db = firebase.firestore();
 
 /* VARS */
 const SYMBOLS = ["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
-const PAYTABLE = {
-    "🍒": 2,
-    "🍋": 3,
-    "🍊": 4,
-    "🔔": 6,
-    "⭐": 8,
-    "7️⃣": 10,
-    "💎": 20
-};
+const PAYTABLE = { "🍒":2,"🍋":3,"🍊":4,"🔔":6,"⭐":8,"7️⃣":10,"💎":20 };
 
 const INCOME_PER_MIN = 5;
 const INTERVAL = 60000;
@@ -204,7 +186,7 @@ let data = {
 
 let winLog = [];
 
-/* LOAD PLAYER */
+/* LOAD */
 async function loadPlayer() {
     const ref = db.collection("players").doc(playerName);
     const doc = await ref.get();
@@ -227,7 +209,7 @@ setInterval(() => {
         savePlayer();
         updateUI();
     }
-    timer.innerText = `⏳ Einkommen in ${Math.ceil((INTERVAL - (now - data.lastIncome))/1000)}s`;
+    timer.innerText = `⏳ Einkommen in ${Math.ceil((INTERVAL-(now-data.lastIncome))/1000)}s`;
 }, 1000);
 
 /* SLOT */
@@ -237,20 +219,14 @@ function randomSym() {
 
 function spin() {
     if (data.balance < data.bet) return;
-
     data.balance -= data.bet;
 
-    const s1 = randomSym();
-    const s2 = randomSym();
-    const s3 = randomSym();
+    const s1=randomSym(), s2=randomSym(), s3=randomSym();
+    r1.innerText=s1; r2.innerText=s2; r3.innerText=s3;
 
-    r1.innerText = s1;
-    r2.innerText = s2;
-    r3.innerText = s3;
-
-    if (s1 === s2 && s2 === s3) {
-        const win = data.bet * PAYTABLE[s1];
-        data.balance += win;
+    if (s1===s2 && s2===s3) {
+        const win=data.bet*PAYTABLE[s1];
+        data.balance+=win;
         addWinLog(`🎉 ${s1}${s2}${s3} → +${win} €`);
     }
 
@@ -262,8 +238,8 @@ function spin() {
 /* WIN LOG */
 function addWinLog(text) {
     winLog.unshift(text);
-    winLog = winLog.slice(0, 5);
-    winLogDiv.innerHTML = winLog.join("<br>");
+    winLog = winLog.slice(0,5);
+    document.getElementById("winLog").innerHTML = winLog.join("<br>");
 }
 
 /* UI */
@@ -275,22 +251,18 @@ function updateUI() {
 
 /* BET */
 function setBet() {
-    const v = parseInt(prompt("Einsatz:", data.bet));
-    if (v > 0 && v <= data.balance) data.bet = v;
-    updateUI();
+    const v=parseInt(prompt("Einsatz:",data.bet));
+    if(v>0&&v<=data.balance){data.bet=v;updateUI();}
 }
-function allIn() {
-    data.bet = data.balance;
-    updateUI();
-}
+function allIn(){data.bet=data.balance;updateUI();}
 
 /* LEADERBOARD */
-async function loadLeaderboard() {
-    const snap = await db.collection("players").orderBy("balance","desc").limit(10).get();
-    leaderboardList.innerHTML = "";
-    let i = 1;
+async function loadLeaderboard(){
+    const snap=await db.collection("players").orderBy("balance","desc").limit(10).get();
+    leaderboardList.innerHTML="";
+    let i=1;
     snap.forEach(d=>{
-        leaderboardList.innerHTML += `${i}. ${d.id}: ${d.data().balance} €<br>`;
+        leaderboardList.innerHTML+=`${i}. ${d.id}: ${d.data().balance} €<br>`;
         i++;
     });
 }
@@ -302,4 +274,3 @@ loadLeaderboard();
 
 </body>
 </html>
-
