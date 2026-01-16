@@ -224,11 +224,14 @@ function spin() {
     const s1=randomSym(), s2=randomSym(), s3=randomSym();
     r1.innerText=s1; r2.innerText=s2; r3.innerText=s3;
 
-    if (s1===s2 && s2===s3) {
-        const win=data.bet*PAYTABLE[s1];
-        data.balance+=win;
-        addWinLog(`🎉 ${s1}${s2}${s3} → +${win} €`);
-    }
+    if (s1 === s2 && s2 === s3) {
+    const win = data.bet * PAYTABLE[s1];
+    data.balance += win;
+    addWinLog(`🎉 ${s1}${s2}${s3} → +${win} €`);
+} else {
+    addWinLog(`❌ Kein Gewinn`);
+}
+
 
     savePlayer();
     updateUI();
@@ -274,3 +277,4 @@ loadLeaderboard();
 
 </body>
 </html>
+
