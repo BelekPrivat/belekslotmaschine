@@ -38,8 +38,8 @@ h1 { color: gold; font-size: 3rem; }
     color: gold;
     font-size: 2rem;
     font-weight: bold;
-    margin: 10px 0 5px 0;
     text-shadow: 0 0 10px gold;
+    margin-bottom: 5px;
 }
 
 .reels {
@@ -111,10 +111,7 @@ h1 { color: gold; font-size: 3rem; }
     <h1>🎰 Belek´s Slot-Maschine 🎰</h1>
 
     <div class="status" id="status"></div>
-
-    <!-- ✅ JACKPOT ÜBER TIMER -->
     <div class="jackpot" id="jackpot">💎 JACKPOT: 5000 €</div>
-
     <div class="status" id="timer"></div>
 
     <div class="reels">
@@ -171,6 +168,7 @@ const db = firebase.firestore();
 
 const SYMBOLS = ["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
 const PAYTABLE = { "🍒":2,"🍋":3,"🍊":5,"🔔":8,"⭐":10,"7️⃣":20 };
+
 const INCOME_PER_MIN = 5;
 const INTERVAL = 60000;
 
@@ -180,6 +178,7 @@ localStorage.setItem("player_name", playerName);
 let data = { balance: 5000, bet: 10, lastIncome: Date.now() };
 let jackpot = 5000;
 let winLog = [];
+let spinning = false;
 
 const jackpotRef = db.collection("game").doc("jackpot");
 
@@ -213,41 +212,66 @@ setInterval(() => {
         data.lastIncome += INTERVAL;
         savePlayer();
     }
-    timer.innerText = `⏳ Einkommen in ${Math.ceil((INTERVAL-(now-data.lastIncome))/1000)}s`;
+    timer.innerText =
+        `⏳ Einkommen in ${Math.ceil((INTERVAL-(now-data.lastIncome))/1000)}s`;
 }, 1000);
 
 function randomSym() {
     return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)];
 }
 
+/* 🎰 SPIN MIT DREH-ANIMATION */
 async function spin() {
-    if (data.balance < data.bet) return;
+    if (spinning || data.balance < data.bet) return;
+    spinning = true;
 
     data.balance -= data.bet;
     jackpot += data.bet;
     await saveJackpot();
 
-    const s1=randomSym(), s2=randomSym(), s3=randomSym();
-    r1.innerText=s1; r2.innerText=s2; r3.innerText=s3;
+    const final1 = randomSym();
+    const final2 = randomSym();
+    const final3 = randomSym();
 
-    if (s1===s2 && s2===s3) {
-        if (s1==="💎") {
-            data.balance += jackpot;
-            addWinLog(`💎💎💎 JACKPOT! +${jackpot} €`);
-            jackpot = 5000;
-            await saveJackpot();
+    animateReel(r1, final1, 800);
+    animateReel(r2, final2, 1100);
+    animateReel(r3, final3, 1400);
+
+    setTimeout(async () => {
+
+        if (final1 === final2 && final2 === final3) {
+            if (final1 === "💎") {
+                data.balance += jackpot;
+                addWinLog(`💎💎💎 JACKPOT! +${jackpot} €`);
+                jackpot = 5000;
+                await saveJackpot();
+            } else {
+                const win = data.bet * PAYTABLE[final1];
+                data.balance += win;
+                addWinLog(`🎉 ${final1}${final2}${final3} → +${win} €`);
+            }
         } else {
-            const win=data.bet*PAYTABLE[s1];
-            data.balance+=win;
-            addWinLog(`🎉 ${s1}${s2}${s3} → +${win} €`);
+            addWinLog("❌ Kein Gewinn");
         }
-    } else {
-        addWinLog(`❌ Kein Gewinn`);
-    }
 
-    savePlayer();
-    updateUI();
-    loadLeaderboard();
+        savePlayer();
+        updateUI();
+        loadLeaderboard();
+        spinning = false;
+
+    }, 1500);
+}
+
+/* 🎞 WALZEN-ANIMATION */
+function animateReel(reel, finalSymbol, duration) {
+    const start = Date.now();
+    const interval = setInterval(() => {
+        reel.innerText = randomSym();
+        if (Date.now() - start >= duration) {
+            clearInterval(interval);
+            reel.innerText = finalSymbol;
+        }
+    }, 80);
 }
 
 function addWinLog(text) {
@@ -263,18 +287,26 @@ function updateUI() {
 }
 
 function setBet() {
-    const v=parseInt(prompt("Einsatz:",data.bet));
-    if(v>0 && v<=data.balance) data.bet=v;
+    const v = parseInt(prompt("Einsatz:", data.bet));
+    if (v > 0 && v <= data.balance) data.bet = v;
     updateUI();
 }
-function allIn(){ data.bet=data.balance; updateUI(); }
 
-async function loadLeaderboard(){
-    const snap=await db.collection("players").orderBy("balance","desc").limit(10).get();
+function allIn() {
+    data.bet = data.balance;
+    updateUI();
+}
+
+async function loadLeaderboard() {
+    const snap = await db.collection("players")
+        .orderBy("balance","desc")
+        .limit(10)
+        .get();
     leaderboardList.innerHTML="";
     let i=1;
     snap.forEach(d=>{
-        leaderboardList.innerHTML+=`${i}. ${d.id}: ${d.data().balance} €<br>`;
+        leaderboardList.innerHTML +=
+            `${i}. ${d.id}: ${d.data().balance} €<br>`;
         i++;
     });
 }
