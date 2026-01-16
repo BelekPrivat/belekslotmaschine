@@ -18,7 +18,7 @@ html, body {
 }
 #layout { display: flex; height: 100vh; }
 
-/* ===== LINKER SPIELBEREICH ===== */
+/* ===== SPIEL ===== */
 #app {
     width: 55%;
     display: flex;
@@ -68,7 +68,7 @@ h1 { color: gold; font-size: 2.6rem; margin-bottom: 5px; }
     margin-top: 8px;
 }
 
-/* ===== RECHTE SEITE ===== */
+/* ===== RECHTS ===== */
 #right {
     width: 45%;
     background: black;
@@ -78,11 +78,7 @@ h1 { color: gold; font-size: 2.6rem; margin-bottom: 5px; }
 }
 
 .section { margin-bottom: 15px; }
-.section h3 {
-    color: gold;
-    text-align: center;
-    margin: 6px 0;
-}
+.section h3 { color: gold; text-align: center; margin: 6px 0; }
 
 /* ===== LEADERBOARD ===== */
 #leaderboardList {
@@ -101,24 +97,52 @@ h1 { color: gold; font-size: 2.6rem; margin-bottom: 5px; }
 }
 #leaderboardList div:last-child { border-bottom: none; }
 
-#leaderboardList div:nth-child(1) {
-    color: gold;
-    font-weight: bold;
-}
-#leaderboardList div:nth-child(2) { color: silver; }
-#leaderboardList div:nth-child(3) { color: #cd7f32; }
-
-/* ===== GEWINN LOG ===== */
+/* ===== 🎯 GEWINN LOG ===== */
 #winLog {
     height: 150px;
-    border: 1px solid gold;
+    border: 2px solid gold;
+    border-radius: 10px;
     padding: 8px;
-    background: #111;
+    background: linear-gradient(180deg, #111, #000);
     font-size: 0.95rem;
-    overflow-y: hidden;
+    overflow-y: auto;
 }
 
-/* ===== PAYTABLE (KOMPAKT) ===== */
+/* einzelne Log-Zeile */
+.log-entry {
+    padding: 4px 6px;
+    margin-bottom: 4px;
+    border-radius: 6px;
+    font-weight: bold;
+    animation: fadeIn 0.3s ease-in;
+}
+
+/* Gewinn */
+.log-win {
+    color: #00ff7f;
+    text-shadow: 0 0 6px rgba(0,255,127,0.6);
+}
+
+/* Verlust */
+.log-lose {
+    color: #ff4c4c;
+    text-shadow: 0 0 6px rgba(255,76,76,0.6);
+}
+
+/* Jackpot */
+.log-jackpot {
+    color: gold;
+    background: rgba(255,215,0,0.08);
+    text-shadow: 0 0 10px gold;
+}
+
+/* kleine Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* ===== PAYTABLE KOMPAKT ===== */
 #paytable {
     background: radial-gradient(circle at top, #222, #000);
     border: 2px solid gold;
@@ -155,7 +179,6 @@ h1 { color: gold; font-size: 2.6rem; margin-bottom: 5px; }
 
 <div id="layout">
 
-<!-- ===== SPIEL ===== -->
 <div id="app">
     <h1>🎰 Belek´s Slot-Maschine</h1>
 
@@ -178,7 +201,6 @@ h1 { color: gold; font-size: 2.6rem; margin-bottom: 5px; }
     <div id="playerInfo" class="player-info"></div>
 </div>
 
-<!-- ===== RECHTS ===== -->
 <div id="right">
 
     <div class="section">
@@ -275,6 +297,7 @@ async function spin(){
     await jackpotRef.set({ value: jackpotValue });
 
     const f1=randomSym(), f2=randomSym(), f3=randomSym();
+
     animateReel(r1,f1,700);
     animateReel(r2,f2,900);
     animateReel(r3,f3,1100);
@@ -283,15 +306,17 @@ async function spin(){
         if(f1===f2 && f2===f3){
             if(f1==="💎"){
                 data.balance += jackpotValue;
-                addWinLog(`💎 JACKPOT +${jackpotValue}€`);
+                addWinLog(`💎 JACKPOT +${jackpotValue}€`, "jackpot");
                 jackpotValue = 5000;
                 await jackpotRef.set({ value: jackpotValue });
             } else {
                 const win = data.bet * PAYTABLE[f1];
                 data.balance += win;
-                addWinLog(`🎉 ${f1}${f2}${f3} +${win}€`);
+                addWinLog(`🎉 ${f1}${f2}${f3} +${win}€`, "win");
             }
-        } else addWinLog("❌ Kein Gewinn");
+        } else {
+            addWinLog("❌ Kein Gewinn", "lose");
+        }
 
         savePlayer();
         updateUI();
@@ -311,10 +336,15 @@ function animateReel(r,f,d){
     },70);
 }
 
-function addWinLog(t){
-    winLog.unshift(t);
+function addWinLog(text,type){
+    let cls="log-entry ";
+    if(type==="win") cls+="log-win";
+    else if(type==="lose") cls+="log-lose";
+    else cls+="log-jackpot";
+
+    winLog.unshift(`<div class="${cls}">${text}</div>`);
     winLog=winLog.slice(0,10);
-    winLogEl.innerHTML=winLog.join("<br>");
+    winLogEl.innerHTML=winLog.join("");
 }
 
 function updateUI(){
@@ -341,8 +371,8 @@ async function loadLeaderboard(){
     leaderboardList.innerHTML="";
     let i=1;
     snap.forEach(d=>{
-        leaderboardList.innerHTML+=`
-        <div><span>${i}. ${d.id}</span><span>${d.data().balance} €</span></div>`;
+        leaderboardList.innerHTML+=
+        `<div><span>${i}. ${d.id}</span><span>${d.data().balance} €</span></div>`;
         i++;
     });
 }
