@@ -4,8 +4,10 @@
 <meta charset="UTF-8">
 <title>🎰 Belek´s Slot-Maschine</title>
 
+<!-- Firebase -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
 <style>
 html,body{
@@ -64,6 +66,7 @@ h1{
     text-align:center;
     box-shadow:inset 0 0 12px rgba(255,215,0,.35);
 }
+
 /* ===== CONTROLS ===== */
 .controls{
     display:flex;
@@ -93,29 +96,54 @@ h1{
     color:cyan;
     margin-top:6px;
 }
-    
+
 /* ===== RECHTS ===== */
 #right{
-    width:45%;background:black;border-left:4px solid gold;
-    padding:12px;display:flex;flex-direction:column;gap:12px;overflow:hidden
+    width:45%;
+    background:black;
+    border-left:4px solid gold;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    overflow:hidden
 }
+
 .panel{
     background:linear-gradient(180deg,#111,#000);
-    border:2px solid gold;border-radius:12px;padding:10px;
-    display:flex;flex-direction:column;overflow:hidden
+    border:2px solid gold;
+    border-radius:12px;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden
 }
+
 .panel h3{text-align:center;color:gold}
 
 /* Leaderboard */
-#leaderboardList{min-height:450px;max-height:450px;overflow-y:auto}
-#leaderboardList div{display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #333}
+#leaderboardList{
+    min-height:450px;
+    max-height:450px;
+    overflow-y:auto
+}
+#leaderboardList div{
+    display:flex;
+    justify-content:space-between;
+    padding:6px;
+    border-bottom:1px solid #333
+}
 .lb-1{color:gold;text-shadow:0 0 8px gold}
 .lb-2{color:silver}
 .lb-3{color:#cd7f32}
 .lb-self{border-left:3px solid cyan}
 
 /* Gewinnlog */
-#winLog{min-height:320px;max-height:320px;overflow-y:auto}
+#winLog{
+    min-height:320px;
+    max-height:320px;
+    overflow-y:auto
+}
 .log-entry{font-weight:bold}
 .log-win{color:#00ff7f}
 .log-lose{color:#ff4c4c}
@@ -125,13 +153,17 @@ h1{
 #paytable table{width:100%;border-collapse:collapse}
 #paytable th,#paytable td{text-align:center;padding:6px}
 #paytable th{color:gold;border-bottom:1px solid gold}
-#paytable tr:not(:last-child) td{border-bottom:1px solid rgba(255,215,0,.25)}
+#paytable tr:not(:last-child) td{
+    border-bottom:1px solid rgba(255,215,0,.25)
+}
 </style>
 </head>
 
 <body>
+
 <div id="layout">
 
+<!-- ===== SPIEL ===== -->
 <div id="app">
  <div id="gameCard">
   <h1>🎰 Belek´s Slot-Maschine 🎰</h1>
@@ -155,31 +187,46 @@ h1{
  </div>
 </div>
 
+<!-- ===== RECHTS ===== -->
 <div id="right">
-<div class="panel"><h3>🏆 Leaderboard</h3><div id="leaderboardList"></div></div>
-<div class="panel"><h3>🧾 Gewinne</h3><div id="winLog"></div></div>
+ <div class="panel">
+  <h3>🏆 Leaderboard</h3>
+  <div id="leaderboardList"></div>
+ </div>
 
-<div class="panel" id="paytable">
-<h3>📊 Paytable</h3>
-<table>
-<tr><th>Kombi</th><th>x</th></tr>
-<tr><td>🍒🍒🍒</td><td>10</td></tr>
-<tr><td>🍋🍋🍋</td><td>30</td></tr>
-<tr><td>🍊🍊🍊</td><td>50</td></tr>
-<tr><td>🔔🔔🔔</td><td>75</td></tr>
-<tr><td>⭐⭐⭐</td><td>100</td></tr>
-<tr><td>7️⃣7️⃣7️⃣</td><td>150</td></tr>
-<tr><td>💎💎💎</td><td>JACKPOT</td></tr>
-</table>
-</div>
+ <div class="panel">
+  <h3>🧾 Gewinne</h3>
+  <div id="winLog"></div>
+ </div>
+
+ <div class="panel" id="paytable">
+  <h3>📊 Paytable</h3>
+  <table>
+   <tr><th>Kombi</th><th>x</th></tr>
+   <tr><td>🍒🍒🍒</td><td>10</td></tr>
+   <tr><td>🍋🍋🍋</td><td>30</td></tr>
+   <tr><td>🍊🍊🍊</td><td>50</td></tr>
+   <tr><td>🔔🔔🔔</td><td>75</td></tr>
+   <tr><td>⭐⭐⭐</td><td>100</td></tr>
+   <tr><td>7️⃣7️⃣7️⃣</td><td>150</td></tr>
+   <tr><td>💎💎💎</td><td>JACKPOT</td></tr>
+  </table>
+ </div>
 </div>
 </div>
 
-<!-- ===== MOD MENU (ISOLIERT) ===== -->
+<!-- ===== MOD MENU ===== -->
 <div id="modMenu" style="
-display:none;position:fixed;bottom:20px;left:20px;
-background:black;border:2px solid red;border-radius:12px;
-padding:12px;z-index:9999;color:white">
+display:none;
+position:fixed;
+bottom:20px;
+left:20px;
+background:black;
+border:2px solid red;
+border-radius:12px;
+padding:12px;
+z-index:9999;
+color:white">
 <h3 style="color:red;text-align:center">🛠 MOD MENU</h3>
 
 <input id="modJackpot" type="number" placeholder="Jackpot €"><br><br>
@@ -192,26 +239,51 @@ padding:12px;z-index:9999;color:white">
 <button onclick="modResetPlayers()">🗑 Alle Spieler löschen</button>
 </div>
 
-<button onclick="openModMenu()" style="
-position:fixed;bottom:10px;right:10px;
-opacity:.15;border:1px solid black;background:black;color:red;
-border-radius:50%;width:42px;height:42px">⚙️</button>
+<!-- ⚙️ Button -->
+<button id="modBtn" style="
+position:fixed;
+bottom:10px;
+right:10px;
+opacity:.15;
+border:1px solid red;
+background:black;
+color:red;
+border-radius:50%;
+width:42px;
+height:42px;
+display:none">⚙️</button>
 
 <script>
+/* ===== FIREBASE ===== */
 firebase.initializeApp({
  apiKey:"AIzaSyBqJub5JZstuXNlemSLc9HFziEs11gA70k",
  authDomain:"slot-site-dce13.firebaseapp.com",
  projectId:"slot-site-dce13"
 });
 
-const db=firebase.firestore();
-const jackpotRef=db.collection("game").doc("jackpot");
+const db = firebase.firestore();
+const auth = firebase.auth();
+const jackpotRef = db.collection("game").doc("jackpot");
 
+/* ===== ADMIN ===== */
+const ADMIN_EMAIL = "hiba.cevin@gmail.com";
+
+/* ===== ADMIN CHECK ===== */
+auth.onAuthStateChanged(user=>{
+ if(user && user.email === ADMIN_EMAIL){
+  modBtn.style.display="block";
+ }else{
+  modBtn.style.display="none";
+  modMenu.style.display="none";
+ }
+});
+
+modBtn.onclick=()=>modMenu.style.display="block";
+
+/* ===== SPIEL ===== */
 const SYMBOLS=["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
 const PAYTABLE={"🍒":10,"🍋":30,"🍊":50,"🔔":75,"⭐":100,"7️⃣":150};
-
 const INCOME_PER_MIN=50,INTERVAL=60000;
-const winLogEl=document.getElementById("winLog");
 
 let playerName=localStorage.getItem("player_name")||prompt("Spielername:");
 localStorage.setItem("player_name",playerName);
@@ -219,12 +291,7 @@ localStorage.setItem("player_name",playerName);
 let data={balance:5000,bet:50,lastIncome:Date.now()};
 let jackpotValue=5000,spinning=false,winLog=[];
 
-/* ===== MOD MENU LOGIK ===== */
-const MOD_PASSWORD="BsMkTe321";
-function openModMenu(){
- if(prompt("Mod Passwort:")===MOD_PASSWORD)
-  document.getElementById("modMenu").style.display="block";
-}
+/* ===== MOD FUNKTIONEN ===== */
 async function modSetJackpot(){
  const v=parseInt(modJackpot.value);
  if(!isNaN(v)) await jackpotRef.set({value:v});
@@ -233,7 +300,8 @@ async function modMoney(){
  const ref=db.collection("players").doc(modPlayer.value);
  const d=await ref.get();
  if(d.exists){
-  let x=d.data();x.balance=Math.max(0,x.balance+parseInt(modAmount.value||0));
+  let x=d.data();
+  x.balance=Math.max(0,x.balance+parseInt(modAmount.value||0));
   await ref.set(x,{merge:true});
  }
 }
@@ -242,14 +310,22 @@ async function modResetPlayers(){
  s.forEach(d=>d.ref.delete());
 }
 
-/* ===== RESTLICHER CODE UNVERÄNDERT ===== */
-jackpotRef.onSnapshot(d=>{if(d.exists){jackpotValue=d.data().value;updateUI()}});
+/* ===== SPIEL LOGIK ===== */
+jackpotRef.onSnapshot(d=>{
+ if(d.exists){
+  jackpotValue=d.data().value;
+  updateUI();
+ }
+});
+
 async function loadPlayer(){
  const r=db.collection("players").doc(playerName);
  const d=await r.get();
- if(d.exists)data={...data,...d.data()}; else await r.set(data);
+ if(d.exists) data={...data,...d.data()};
+ else await r.set(data);
  updateUI();
 }
+
 db.collection("players").orderBy("balance","desc").limit(10)
 .onSnapshot(s=>{
  leaderboardList.innerHTML="";
@@ -257,7 +333,11 @@ db.collection("players").orderBy("balance","desc").limit(10)
  s.forEach(d=>{
   let c=i==1?"lb-1":i==2?"lb-2":i==3?"lb-3":"";
   if(d.id==playerName)c+=" lb-self";
-  leaderboardList.innerHTML+=`<div class="${c}"><span>${i}. ${d.id}</span><span>${d.data().balance} €</span></div>`;
+  leaderboardList.innerHTML+=
+   `<div class="${c}">
+    <span>${i}. ${d.id}</span>
+    <span>${d.data().balance} €</span>
+   </div>`;
   i++;
  });
 });
@@ -278,53 +358,51 @@ setInterval(async()=>{
 },1000);
 
 function randomSym(){return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]}
+
 async function spin(){
  if(spinning||data.balance<data.bet)return;
  spinning=true;
  data.balance-=data.bet;
  jackpotValue+=data.bet;
  await jackpotRef.set({value:jackpotValue});
+
  const f1=randomSym(),f2=randomSym(),f3=randomSym();
-animate(r1, f1, 600);
-animate(r2, f2, 800);
-animate(r3, f3, 1000);
-setTimeout(async()=>{
+ r1.innerText=f1; r2.innerText=f2; r3.innerText=f3;
+
+ setTimeout(async()=>{
   if(f1===f2&&f2===f3){
    if(f1==="💎"){
-    data.balance+=jackpotValue; jackpotValue=5000;
-    await jackpotRef.set({value:jackpotValue});
+    data.balance+=jackpotValue;
     log(`💎 JACKPOT +${jackpotValue}€`,"jackpot");
+    jackpotValue=5000;
+    await jackpotRef.set({value:jackpotValue});
    }else{
     const w=data.bet*PAYTABLE[f1];
-    data.balance+=w; log(`🎉 ${f1}${f2}${f3} +${w}€`,"win");
+    data.balance+=w;
+    log(`🎉 ${f1}${f2}${f3} +${w}€`,"win");
    }
   }else log("❌ Kein Gewinn","lose");
+
   await db.collection("players").doc(playerName).set(data,{merge:true});
-  updateUI(); spinning=false;
+  updateUI();
+  spinning=false;
  },1100);
-}
-    
-function animate(reel, finalSymbol, duration){
- const start = Date.now();
- const interval = setInterval(()=>{
-  reel.innerText = randomSym();
-  if(Date.now() - start >= duration){
-   clearInterval(interval);
-   reel.innerText = finalSymbol;
-  }
- },70);
 }
 
 function log(t,type){
- winLog.unshift(`<div class="log-entry ${type=='win'?'log-win':type=='lose'?'log-lose':'log-jackpot'}">${t}</div>`);
+ winLog.unshift(
+  `<div class="log-entry ${type=='win'?'log-win':type=='lose'?'log-lose':'log-jackpot'}">${t}</div>`
+ );
  winLog=winLog.slice(0,12);
  winLogEl.innerHTML=winLog.join("");
 }
+
 function updateUI(){
  status.innerText=`👤 ${playerName}`;
  jackpot.innerText=`💎 JACKPOT: ${jackpotValue} €`;
  playerInfo.innerText=`💰 ${data.balance} € | 🎯 Einsatz ${data.bet} €`;
 }
+
 function setBet(){
  const v=parseInt(prompt("Einsatz:",data.bet));
  if(v>=50&&v<=data.balance)data.bet=v;
@@ -333,12 +411,8 @@ function allIn(){
  if(data.balance<=0)return alert("❌ Kein Guthaben");
  data.bet=data.balance;
 }
+
 loadPlayer();
 </script>
 </body>
 </html>
-
-
-
-
-
