@@ -24,6 +24,9 @@ h1{color:gold;font-size:2.6rem}
 .panel{background:linear-gradient(180deg,#111,#000);border:2px solid gold;border-radius:12px;padding:10px}
 .panel h3{text-align:center;color:gold}
 #leaderboardList div{display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #333}
+ #leaderboardList {
+    min-height: 260px;   /* <- gewünschte Mindesthöhe */
+    max-height: 260px;   /* <- fixiert die Größe */
 .lb-1{color:gold}.lb-2{color:silver}.lb-3{color:#cd7f32}.lb-self{border-left:3px solid cyan}
 #winLog{min-height:320px;overflow-y:auto}
 .log-entry{font-weight:bold}
@@ -225,3 +228,4 @@ loadPlayer();
 </script>
 </body>
 </html>
+
