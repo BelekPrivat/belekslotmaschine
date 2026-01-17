@@ -353,10 +353,18 @@ function setBet(){
  if(v>=50&&v<=data.balance) data.bet=v;
  updateUI();
 }
-function allIn(){data.bet=data.balance;updateUI()}
+function allIn(){
+ if(data.balance <= 0){
+   alert("❌ Du hast kein Guthaben für ALL IN");
+   return;
+ }
+ data.bet = data.balance;
+ updateUI();
+}
 
 loadPlayer();
 </script>
 </body>
 </html>
+
 
