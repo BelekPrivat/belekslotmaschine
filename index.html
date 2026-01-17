@@ -202,12 +202,12 @@ h1{color:gold;font-size:2.6rem}
 <h3>📊 Paytable</h3>
 <table>
 <tr><th>Kombi</th><th>x</th></tr>
-<tr><td>🍒🍒🍒</td><td>5</td></tr>
-<tr><td>🍋🍋🍋</td><td>7</td></tr>
-<tr><td>🍊🍊🍊</td><td>10</td></tr>
-<tr><td>🔔🔔🔔</td><td>15</td></tr>
-<tr><td>⭐⭐⭐</td><td>25</td></tr>
-<tr><td>7️⃣7️⃣7️⃣</td><td>50</td></tr>
+<tr><td>🍒🍒🍒</td><td>10</td></tr>
+<tr><td>🍋🍋🍋</td><td>30</td></tr>
+<tr><td>🍊🍊🍊</td><td>50</td></tr>
+<tr><td>🔔🔔🔔</td><td>75</td></tr>
+<tr><td>⭐⭐⭐</td><td>100</td></tr>
+<tr><td>7️⃣7️⃣7️⃣</td><td>150</td></tr>
 <tr><td>💎💎💎</td><td>JACKPOT</td></tr>
 </table>
 </div>
@@ -225,7 +225,7 @@ const db=firebase.firestore();
 const jackpotRef=db.collection("game").doc("jackpot");
 
 const SYMBOLS=["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
-const PAYTABLE={"🍒":5,"🍋":7,"🍊":10,"🔔":15,"⭐":25,"7️⃣":50};
+const PAYTABLE={"🍒":10,"🍋":30,"🍊":50,"🔔":75,"⭐":100,"7️⃣":150};
 
 const INCOME_PER_MIN=50;
 const INTERVAL=60000;
@@ -366,5 +366,6 @@ loadPlayer();
 </script>
 </body>
 </html>
+
 
 
