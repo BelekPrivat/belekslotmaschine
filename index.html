@@ -233,7 +233,7 @@ const winLogEl = document.getElementById("winLog");
 let playerName = localStorage.getItem("player_name") || prompt("Spielername:");
 localStorage.setItem("player_name", playerName);
 
-let data = { balance: 5000, bet: 10, lastIncome: Date.now() };
+let data = { balance: 5000, bet: 100, lastIncome: Date.now() };
 let jackpotValue = 5000;
 let winLog = [];
 let spinning = false;
@@ -324,7 +324,7 @@ function updateUI(){
 
 function setBet(){
     const v=parseInt(prompt("Einsatz:",data.bet));
-    if(v>100&&v<=data.balance) data.bet=v;
+    if(v>99&&v<=data.balance) data.bet=v;
     updateUI();
 }
 function allIn(){ data.bet=data.balance; updateUI(); }
@@ -348,5 +348,6 @@ loadLeaderboard();
 
 </body>
 </html>
+
 
 
