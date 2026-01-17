@@ -8,65 +8,158 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 
 <style>
-html,body{margin:0;padding:0;height:100%;background:#111;color:white;font-family:Arial}
-#layout{display:flex;height:100vh}
-#app{width:55%;display:flex;flex-direction:column;align-items:center;justify-content:center}
+html,body{
+    margin:0;
+    padding:0;
+    height:100%;
+    background:#111;
+    color:white;
+    font-family:Arial
+}
+
+#layout{
+    display:flex;
+    height:100vh;
+    overflow:hidden;
+}
+
+/* ===== SPIEL ===== */
+#app{
+    width:55%;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+}
+
 h1{color:gold;font-size:2.6rem}
 .status{color:cyan}
 .jackpot{color:gold;font-size:1.9rem;text-shadow:0 0 10px gold}
+
 .reels{display:flex;gap:25px;margin:15px}
-.reel{width:95px;font-size:4.5rem;background:#000;padding:18px;border:5px ridge gold;text-align:center}
-.controls button{padding:10px 16px;margin:4px;font-size:1.05rem}
+.reel{
+    width:95px;
+    font-size:4.5rem;
+    background:#000;
+    padding:18px;
+    border:5px ridge gold;
+    text-align:center
+}
+
+.controls button{
+    padding:10px 16px;
+    margin:4px;
+    font-size:1.05rem
+}
 .spin{background:green;color:white}
 .allin{background:red;color:white}
-.player-info{font-size:1.25rem;color:cyan;margin-top:8px}
-#right{width:45%;background:black;border-left:4px solid gold;padding:12px;display:flex;flex-direction:column;gap:12px}
-.panel{background:linear-gradient(180deg,#111,#000);border:2px solid gold;border-radius:12px;padding:10px}
-.panel h3{text-align:center;color:gold}
-#leaderboardList div{display:flex;justify-content:space-between;padding:6px;border-bottom:1px solid #333}
-#leaderboardList {
-    min-height: 450px;
-    max-height: 450px;
+
+.player-info{
+    font-size:1.25rem;
+    color:cyan;
+    margin-top:8px
 }
 
-/* Leaderboard Plätze */
-.lb-1 { color: gold; text-shadow: 0 0 8px gold; }
-.lb-2 { color: silver; }
-.lb-3 { color: #cd7f32; }
-.lb-self { border-left: 3px solid cyan; }
+/* ===== RECHTS ===== */
+#right{
+    width:45%;
+    height:100vh;
+    background:black;
+    border-left:4px solid gold;
+    padding:12px;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+    overflow:hidden;
+}
+
+/* ===== PANEL ===== */
+.panel{
+    background:linear-gradient(180deg,#111,#000);
+    border:2px solid gold;
+    border-radius:12px;
+    padding:10px;
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+
+.panel h3{
+    text-align:center;
+    color:gold;
+    margin:4px 0 8px;
+}
+
+/* ===== LEADERBOARD ===== */
+#leaderboardList{
+    min-height:450px;
+    max-height:450px;
+    overflow-y:auto;
+    overflow-x:hidden;
+}
+
+#leaderboardList div{
+    display:flex;
+    justify-content:space-between;
+    padding:6px;
+    border-bottom:1px solid #333;
+}
+
+/* Plätze */
+.lb-1{color:gold;text-shadow:0 0 8px gold}
+.lb-2{color:silver}
+.lb-3{color:#cd7f32}
+.lb-self{border-left:3px solid cyan}
 
 /* ===== GEWINN LOG ===== */
-#winLog {
-    min-height: 320px;
-    max-height: 320px;
+#winLog{
+    min-height:320px;
+    max-height:320px;
+    overflow-y:auto;
+    overflow-x:hidden;
 }
 
-.log-entry { font-weight: bold; padding: 4px 0; }
-.log-win { color: #00ff7f; }
-.log-lose { color: #ff4c4c; }
-.log-jackpot { color: gold; }
+.log-entry{font-weight:bold;padding:4px 0}
+.log-win{color:#00ff7f}
+.log-lose{color:#ff4c4c}
+.log-jackpot{color:gold}
 
 /* ===== PAYTABLE ===== */
-#paytable table {
-    width: 100%;
-    border-collapse: collapse;
+#paytable table{
+    width:100%;
+    border-collapse:collapse;
 }
 
-#paytable th,
-#paytable td {
-    text-align: center;
-    padding: 6px;
+#paytable th,#paytable td{
+    text-align:center;
+    padding:6px;
 }
 
-#paytable th {
-    color: gold;
-    border-bottom: 1px solid gold;
+#paytable th{
+    color:gold;
+    border-bottom:1px solid gold;
 }
 
-#paytable tr:not(:last-child) td {
-    border-bottom: 1px solid rgba(255,215,0,.25);
+#paytable tr:not(:last-child) td{
+    border-bottom:1px solid rgba(255,215,0,.25);
 }
 
+/* ===== SCROLLBAR DESIGN ===== */
+#leaderboardList::-webkit-scrollbar,
+#winLog::-webkit-scrollbar{
+    width:6px;
+}
+
+#leaderboardList::-webkit-scrollbar-thumb,
+#winLog::-webkit-scrollbar-thumb{
+    background:gold;
+    border-radius:10px;
+}
+
+#leaderboardList::-webkit-scrollbar-track,
+#winLog::-webkit-scrollbar-track{
+    background:#000;
+}
 </style>
 </head>
 
@@ -95,8 +188,16 @@ h1{color:gold;font-size:2.6rem}
 </div>
 
 <div id="right">
-<div class="panel"><h3>🏆 Leaderboard</h3><div id="leaderboardList"></div></div>
-<div class="panel"><h3>🧾 Gewinne</h3><div id="winLog"></div></div>
+<div class="panel">
+<h3>🏆 Leaderboard</h3>
+<div id="leaderboardList"></div>
+</div>
+
+<div class="panel">
+<h3>🧾 Gewinne</h3>
+<div id="winLog"></div>
+</div>
+
 <div class="panel" id="paytable">
 <h3>📊 Paytable</h3>
 <table>
@@ -139,39 +240,35 @@ let jackpotValue=5000;
 let spinning=false;
 let winLog=[];
 
-/* JACKPOT */
+/* JACKPOT LIVE */
 jackpotRef.onSnapshot(d=>{
  if(d.exists){jackpotValue=d.data().value;updateUI();}
 });
 
-/* PLAYER LOAD FIX */
+/* PLAYER LOAD */
 async function loadPlayer(){
  const ref=db.collection("players").doc(playerName);
  const doc=await ref.get();
- if(doc.exists){
-   data={...data,...doc.data()};
- }else{
-   await ref.set(data);
- }
+ if(doc.exists){ data={...data,...doc.data()}; }
+ else{ await ref.set(data); }
  updateUI();
 }
 
 /* LEADERBOARD LIVE */
-db.collection("players")
-.orderBy("balance","desc")
-.limit(10)
+db.collection("players").orderBy("balance","desc").limit(10)
 .onSnapshot(s=>{
  leaderboardList.innerHTML="";
  let i=1;
  s.forEach(d=>{
   let cls=i===1?"lb-1":i===2?"lb-2":i===3?"lb-3":"";
   if(d.id===playerName) cls+=" lb-self";
-  leaderboardList.innerHTML+=`<div class="${cls}"><span>${i}. ${d.id}</span><span>${d.data().balance} €</span></div>`;
+  leaderboardList.innerHTML+=
+  `<div class="${cls}"><span>${i}. ${d.id}</span><span>${d.data().balance} €</span></div>`;
   i++;
  });
 });
 
-/* TIMER */
+/* TIMER + INCOME */
 setInterval(()=>{
  const now=Date.now();
  if(data.balance<5000){
@@ -194,37 +291,31 @@ async function spin(){
  if(spinning||data.balance<data.bet) return;
  spinning=true;
 
- try{
-  data.balance-=data.bet;
-  jackpotValue+=data.bet;
-  await jackpotRef.set({value:jackpotValue});
+ data.balance-=data.bet;
+ jackpotValue+=data.bet;
+ await jackpotRef.set({value:jackpotValue});
 
-  const f1=randomSym(),f2=randomSym(),f3=randomSym();
-  animate(r1,f1,600);animate(r2,f2,800);animate(r3,f3,1000);
+ const f1=randomSym(),f2=randomSym(),f3=randomSym();
+ animate(r1,f1,600);animate(r2,f2,800);animate(r3,f3,1000);
 
-  setTimeout(async()=>{
-   if(f1===f2&&f2===f3){
-    if(f1==="💎"){
-     data.balance+=jackpotValue;
-     log(`💎 JACKPOT +${jackpotValue}€`,"jackpot");
-     jackpotValue=5000;
-     await jackpotRef.set({value:jackpotValue});
-    }else{
-     const win=data.bet*PAYTABLE[f1];
-     data.balance+=win;
-     log(`🎉 ${f1}${f2}${f3} +${win}€`,"win");
-    }
-   }else log("❌ Kein Gewinn","lose");
+ setTimeout(async()=>{
+  if(f1===f2&&f2===f3){
+   if(f1==="💎"){
+    data.balance+=jackpotValue;
+    log(`💎 JACKPOT +${jackpotValue}€`,"jackpot");
+    jackpotValue=5000;
+    await jackpotRef.set({value:jackpotValue});
+   }else{
+    const win=data.bet*PAYTABLE[f1];
+    data.balance+=win;
+    log(`🎉 ${f1}${f2}${f3} +${win}€`,"win");
+   }
+  }else log("❌ Kein Gewinn","lose");
 
-   await db.collection("players").doc(playerName).set(data,{merge:true});
-   updateUI();
-   spinning=false;
-  },1100);
-
- }catch(e){
-  console.error(e);
+  await db.collection("players").doc(playerName).set(data,{merge:true});
+  updateUI();
   spinning=false;
- }
+ },1100);
 }
 
 function animate(r,f,d){
@@ -247,6 +338,7 @@ function updateUI(){
  jackpot.innerText=`💎 JACKPOT: ${jackpotValue} €`;
  playerInfo.innerText=`💰 ${data.balance} € | 🎯 Einsatz ${data.bet} €`;
 }
+
 function setBet(){
  const v=parseInt(prompt("Einsatz:",data.bet));
  if(v>=50&&v<=data.balance) data.bet=v;
@@ -258,6 +350,3 @@ loadPlayer();
 </script>
 </body>
 </html>
-
-
-
