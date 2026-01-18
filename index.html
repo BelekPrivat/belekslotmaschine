@@ -220,24 +220,44 @@ const PAYTABLE={"🍒":10,"🍋":30,"🍊":50,"🔔":75,"⭐":100,"7️⃣":150}
 const INCOME_PER_MIN=50,INTERVAL=60000;
 const winLogEl=document.getElementById("winLog");
 
-function getOrCreatePlayerName() {
+async function getOrCreateUniquePlayerName() {
   let name = localStorage.getItem("player_name");
 
-  while (!name || name.trim().length < 3) {
-    name = prompt("🎰 Willkommen!\nBitte gib einen Spielernamen ein (mind. 3 Zeichen):");
+  if (name) return name;
+
+  while (true) {
+    name = prompt("🎰 Willkommen!\nGib einen Spielernamen ein (3–10 Zeichen):");
 
     if (name === null) {
       alert("❌ Ohne Namen kannst du nicht spielen.");
-    } else {
-      name = name.trim();
+      continue;
     }
-  }
 
-  localStorage.setItem("player_name", name);
-  return name;
+    name = name.trim();
+
+    if (name.length < 3 || name.length > 10) {
+      alert("❌ Name muss zwischen 3 und 10 Zeichen lang sein.");
+      continue;
+    }
+
+    const doc = await db.collection("players").doc(name).get();
+
+    if (doc.exists) {
+      alert("❌ Dieser Name wird bereits benutzt.\nBitte wähle einen anderen.");
+      continue;
+    }
+
+    // ✅ Name ist gültig & einzigartig
+    localStorage.setItem("player_name", name);
+    return name;
+  }
 }
 
-let playerName = getOrCreatePlayerName();
+let playerName;
+(async () => {
+  playerName = await getOrCreateUniquePlayerName();
+  loadPlayer();
+})();
 
 
 let data={balance:5000,bet:50,lastIncome:Date.now()};
@@ -357,11 +377,6 @@ function allIn(){
  if(data.balance<50)return alert("❌ Kein Guthaben");
  data.bet=data.balance;
 }
-loadPlayer();
 </script>
 </body>
 </html>
-
- 
-
-
