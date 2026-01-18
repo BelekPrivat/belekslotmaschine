@@ -198,11 +198,18 @@ opacity:.15;border:1px solid black;background:black;color:red;
 border-radius:50%;width:42px;height:42px">⚙️</button>
 
 <script>
+    
 firebase.initializeApp({
  apiKey:"AIzaSyBqJub5JZstuXNlemSLc9HFziEs11gA70k",
  authDomain:"slot-site-dce13.firebaseapp.com",
  projectId:"slot-site-dce13"
 });
+
+const GAME_VERSION = "2.0";
+if (localStorage.getItem("game_version") !== GAME_VERSION) {
+  localStorage.clear();
+  localStorage.setItem("game_version", GAME_VERSION);
+}
 
 const db=firebase.firestore();
 const jackpotRef=db.collection("game").doc("jackpot");
@@ -213,8 +220,25 @@ const PAYTABLE={"🍒":10,"🍋":30,"🍊":50,"🔔":75,"⭐":100,"7️⃣":150}
 const INCOME_PER_MIN=50,INTERVAL=60000;
 const winLogEl=document.getElementById("winLog");
 
-let playerName=localStorage.getItem("player_name")||prompt("Spielername:");
-localStorage.setItem("player_name",playerName);
+function getOrCreatePlayerName() {
+  let name = localStorage.getItem("player_name");
+
+  while (!name || name.trim().length < 3) {
+    name = prompt("🎰 Willkommen!\nBitte gib einen Spielernamen ein (mind. 3 Zeichen):");
+
+    if (name === null) {
+      alert("❌ Ohne Namen kannst du nicht spielen.");
+    } else {
+      name = name.trim();
+    }
+  }
+
+  localStorage.setItem("player_name", name);
+  return name;
+}
+
+let playerName = getOrCreatePlayerName();
+
 
 let data={balance:5000,bet:50,lastIncome:Date.now()};
 let jackpotValue=5000,spinning=false,winLog=[];
@@ -339,3 +363,4 @@ loadPlayer();
 </html>
 
  
+
