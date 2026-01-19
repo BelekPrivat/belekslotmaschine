@@ -175,28 +175,6 @@ h1{
 </div>
 </div>
 
-<!-- ===== MOD MENU (ISOLIERT) ===== -->
-<div id="modMenu" style="
-display:none;position:fixed;bottom:20px;left:20px;
-background:black;border:2px solid red;border-radius:12px;
-padding:12px;z-index:9999;color:white">
-<h3 style="color:red;text-align:center">🛠 MOD MENU</h3>
-
-<input id="modJackpot" type="number" placeholder="Jackpot €"><br><br>
-<button onclick="modSetJackpot()">💎 Jackpot setzen</button><br><br>
-
-<input id="modPlayer" placeholder="Spielername"><br>
-<input id="modAmount" type="number" placeholder="€ Betrag"><br>
-<button onclick="modMoney()">💰 Geld ändern</button><br><br>
-
-<button onclick="modResetPlayers()">🗑 Alle Spieler löschen</button>
-</div>
-
-<button onclick="openModMenu()" style="
-position:fixed;bottom:10px;right:10px;
-opacity:.15;border:1px solid black;background:black;color:red;
-border-radius:50%;width:42px;height:42px">⚙️</button>
-
 <script>
     
 firebase.initializeApp({
@@ -205,7 +183,7 @@ firebase.initializeApp({
  projectId:"slot-site-dce13"
 });
 
-const GAME_VERSION = "1.2";
+const GAME_VERSION = "1.3";
 if (localStorage.getItem("game_version") !== GAME_VERSION) {
   localStorage.clear();
   localStorage.setItem("game_version", GAME_VERSION);
@@ -262,29 +240,6 @@ let playerName;
 
 let data={balance:5000,bet:50,lastIncome:Date.now()};
 let jackpotValue=5000,spinning=false,winLog=[];
-
-/* ===== MOD MENU LOGIK ===== */
-const MOD_PASSWORD="BsMkTe321";
-function openModMenu(){
- if(prompt("Mod Passwort:")===MOD_PASSWORD)
-  document.getElementById("modMenu").style.display="block";
-}
-async function modSetJackpot(){
- const v=parseInt(modJackpot.value);
- if(!isNaN(v)) await jackpotRef.set({value:v});
-}
-async function modMoney(){
- const ref=db.collection("players").doc(modPlayer.value);
- const d=await ref.get();
- if(d.exists){
-  let x=d.data();x.balance=Math.max(0,x.balance+parseInt(modAmount.value||0));
-  await ref.set(x,{merge:true});
- }
-}
-async function modResetPlayers(){
- const s=await db.collection("players").get();
- s.forEach(d=>d.ref.delete());
-}
 
 /* ===== RESTLICHER CODE UNVERÄNDERT ===== */
 jackpotRef.onSnapshot(d=>{if(d.exists){jackpotValue=d.data().value;updateUI()}});
@@ -380,4 +335,5 @@ function allIn(){
 </script>
 </body>
 </html>
+
 
