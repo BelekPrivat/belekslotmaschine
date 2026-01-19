@@ -8,7 +8,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
 
-
 <style>
 html,body{margin:0;padding:0;height:100%;background:#111;color:white;font-family:Arial}
 #layout{display:flex;height:100vh;overflow:hidden}
@@ -34,12 +33,6 @@ h1{color:gold;font-size:2.6rem;text-shadow:0 0 12px gold}
 .lb-1{color:gold}.lb-2{color:silver}.lb-3{color:#cd7f32}.lb-self{border-left:3px solid cyan}
 #winLog{min-height:260px;max-height:260px;overflow-y:auto}
 .log-win{color:#00ff7f}.log-lose{color:#ff4c4c}.log-jackpot{color:gold}
- 
-#paytable table{width:100%;border-collapse:collapse}
-#paytable th,#paytable td{text-align:center;padding:6px}
-#paytable th{color:gold;border-bottom:1px solid gold}
-#paytable tr:not(:last-child) td{border-bottom:1px solid rgba(255,215,0,.25)}
- 
 </style>
 </head>
 
@@ -71,120 +64,88 @@ h1{color:gold;font-size:2.6rem;text-shadow:0 0 12px gold}
 <div id="right">
 <div class="panel"><h3>🏆 Leaderboard</h3><div id="leaderboardList"></div></div>
 <div class="panel"><h3>🧾 Gewinne</h3><div id="winLog"></div></div>
-
- <div class="panel" id="paytable">
-<h3>📊 Paytable</h3>
-<table>
-<tr><th>Kombi</th><th>x</th></tr>
-<tr><td>🍒🍒🍒</td><td>10</td></tr>
-<tr><td>🍋🍋🍋</td><td>30</td></tr>
-<tr><td>🍊🍊🍊</td><td>50</td></tr>
-<tr><td>🔔🔔🔔</td><td>75</td></tr>
-<tr><td>⭐⭐⭐</td><td>100</td></tr>
-<tr><td>7️⃣7️⃣7️⃣</td><td>150</td></tr>
-<tr><td>💎💎💎</td><td>JACKPOT</td></tr>
-</table>
-</div>
 </div>
 </div>
 
 <script>
 firebase.initializeApp({
- apiKey: "AIzaSyA8LYHHlfOwdODHC5Eo-hzWM5pABvvJJlY",
+  apiKey: "AIzaSyA8LYHHlfOwdODHC5Eo-hzWM5pABvvJJlY",
   authDomain: "slot-maschine-2.firebaseapp.com",
-  projectId: "slot-maschine-2",
-});
- const auth = firebase.auth();
- auth.signInAnonymously().catch(console.error);
-
-auth.onAuthStateChanged(async user => {
-  if (!user) return;
-  playerUID = user.uid;
-  await init();
+  projectId: "slot-maschine-2"
 });
 
-const db=firebase.firestore();
- 
-const winLogEl = document.getElementById("winLog");
+const auth = firebase.auth();
+const db = firebase.firestore();
 
-const jackpotRef=db.collection("game").doc("jackpot");
-
+const jackpotRef = db.collection("game").doc("jackpot");
 const SYMBOLS=["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
 const PAYTABLE={"🍒":10,"🍋":30,"🍊":50,"🔔":75,"⭐":100,"7️⃣":150};
-
 const INCOME_PER_MIN=50,INTERVAL=60000;
- 
+
 let playerUID = null;
-
-let playerName = localStorage.getItem("player_name");
-
-while (!playerName || playerName.length < 3 || playerName.length > 10) {
-  playerName = prompt("Spielername (3–10 Zeichen):");
-}
-
-localStorage.setItem("player_name", playerName);
+let playerName = localStorage.getItem("player_name") || prompt("Spielername:");
+localStorage.setItem("player_name",playerName);
 
 let data={balance:5000,bet:50,lastIncome:Date.now()};
 let jackpotValue=5000,spinning=false;
 let winLog=[];
+const winLogEl=document.getElementById("winLog");
 
-/* ===== INITIAL LOAD ===== */
+/* 🔐 AUTH → INIT */
+auth.onAuthStateChanged(async user=>{
+ if(!user) return;
+ playerUID=user.uid;
+ await init();
+});
+auth.signInAnonymously();
+
+/* ===== INIT ===== */
 async function init(){
  const jp=await jackpotRef.get();
  if(jp.exists) jackpotValue=jp.data().value;
+
  const ref=db.collection("players").doc(playerUID);
  const d=await ref.get();
- if (d.exists) {
-  data = { ...data, ...d.data() };
 
-  if (!d.data().name) {
-    await ref.set({ name: playerName }, { merge: true });
+ if(d.exists){
+  data={...data,...d.data()};
+  if(!d.data().name){
+   await ref.set({name:playerName},{merge:true});
   }
-}
- else await ref.set({
-  ...data,
-  name: playerName
-});
+ }else{
+  await ref.set({...data,name:playerName});
+ }
  updateUI();
  loadLeaderboard();
 }
 
-/* ===== LEADERBOARD (ALLE 5s) ===== */
+/* ===== LEADERBOARD ===== */
 async function loadLeaderboard(){
-  const snap = await db
-    .collection("players")
-    .orderBy("balance","desc")
-    .limit(10)
-    .get();
-
-  leaderboardList.innerHTML = "";
-  let i = 1;
-
-  snap.forEach(d => {
-    let c = i==1?"lb-1":i==2?"lb-2":i==3?"lb-3":"";
-    if(d.id === playerUID) c += " lb-self";
-
-    leaderboardList.innerHTML += `
-      <div class="${c}">
-        <span>${i}. ${d.data().name}</span>
-        <span>${d.data().balance} €</span>
-      </div>
-    `;
-    i++;
-  });
+ const snap=await db.collection("players").orderBy("balance","desc").limit(10).get();
+ leaderboardList.innerHTML="";
+ let i=1;
+ snap.forEach(d=>{
+  let c=i==1?"lb-1":i==2?"lb-2":i==3?"lb-3":"";
+  if(d.id===playerUID)c+=" lb-self";
+  leaderboardList.innerHTML+=`
+   <div class="${c}">
+    <span>${i}. ${d.data().name||"Unbekannt"}</span>
+    <span>${d.data().balance} €</span>
+   </div>`;
+  i++;
+ });
 }
-
 setInterval(loadLeaderboard,5000);
 
-/* ===== EINKOMMEN (LOKAL) ===== */
-setInterval(()=>{
+/* ===== EINKOMMEN ===== */
+setInterval(async()=>{
  const now=Date.now();
  if(data.balance<5000){
   const diff=Math.floor((now-data.lastIncome)/INTERVAL);
   if(diff>0){
    data.balance=Math.min(5000,data.balance+diff*INCOME_PER_MIN);
    data.lastIncome+=diff*INTERVAL;
-   savePlayer();
+   await savePlayer();
   }
   timer.innerText=`⏳ +50€ in ${Math.ceil((INTERVAL-(now-data.lastIncome))/1000)}s`;
  }else timer.innerText="✅ Maximales Einkommen erreicht";
@@ -194,70 +155,43 @@ setInterval(()=>{
 /* ===== SPIN ===== */
 function randomSym(){return SYMBOLS[Math.floor(Math.random()*SYMBOLS.length)]}
 async function spin(){
- if(spinning) return;
- if(data.balance < data.bet){
-  alert("❌ Nicht genug Guthaben");
-  return;
- }
-
- spinning = true;
-
- try{
-  data.balance -= data.bet;
-  jackpotValue += data.bet;
-
-  await jackpotRef.set({value: jackpotValue});
-
-  const f1=randomSym(), f2=randomSym(), f3=randomSym();
-  animate(r1,f1,600);
-  animate(r2,f2,800);
-  animate(r3,f3,1000);
-
-  setTimeout(async()=>{
-   if(f1===f2 && f2===f3){
-    if(f1==="💎"){
-     const win = jackpotValue;
-     data.balance += win;
-     jackpotValue = 5000;
-     await jackpotRef.set({value: jackpotValue});
-     log(`💎 JACKPOT +${win}€`, "jackpot");
-    } else {
-     const win = data.bet * PAYTABLE[f1];
-     data.balance += win;
-     log(`🎉 Gewinn +${win}€`, "win");
-    }
-   } else {
-    log("❌ Kein Gewinn", "lose");
+ if(spinning||data.balance<data.bet)return;
+ spinning=true;
+ data.balance-=data.bet;
+ jackpotValue+=data.bet;
+ const f1=randomSym(),f2=randomSym(),f3=randomSym();
+ animate(r1,f1,600);animate(r2,f2,800);animate(r3,f3,1000);
+ setTimeout(async()=>{
+  if(f1===f2&&f2===f3){
+   if(f1==="💎"){
+    data.balance+=jackpotValue;
+    jackpotValue=5000;
+    log(`💎 JACKPOT!`,"jackpot");
+   }else{
+    const win=data.bet*PAYTABLE[f1];
+    data.balance+=win;
+    log(`🎉 Gewinn +${win}€`,"win");
    }
-
-   await savePlayer();
-   updateUI();
-   spinning = false;
-  },1100);
-
- } catch(e){
-  console.error(e);
-  spinning = false;
- }
+  }else log("❌ Kein Gewinn","lose");
+  await savePlayer();
+  updateUI();
+  spinning=false;
+ },1100);
 }
-
 
 /* ===== UTIL ===== */
-function animate(reel,sym,d){
- const s=Date.now();
+function animate(r,s,d){
+ const st=Date.now();
  const i=setInterval(()=>{
-  reel.innerText=randomSym();
-  if(Date.now()-s>=d){clearInterval(i);reel.innerText=sym;}
+  r.innerText=randomSym();
+  if(Date.now()-st>=d){clearInterval(i);r.innerText=s;}
  },70);
 }
-function log(text, type){
- let cls = "log-win";
- if(type==="lose") cls="log-lose";
- if(type==="jackpot") cls="log-jackpot";
-
- winLog.unshift(`<div class="log-entry ${cls}">${text}</div>`);
- winLog = winLog.slice(0,12);
- winLogEl.innerHTML = winLog.join("");
+function log(t,type){
+ const c=type=="lose"?"log-lose":type=="jackpot"?"log-jackpot":"log-win";
+ winLog.unshift(`<div class="${c}">${t}</div>`);
+ winLog=winLog.slice(0,12);
+ winLogEl.innerHTML=winLog.join("");
 }
 function updateUI(){
  status.innerText=`👤 ${playerName}`;
@@ -273,23 +207,9 @@ function allIn(){
  data.bet=data.balance;
 }
 async function savePlayer(){
- await db.collection("players")
- .doc(playerUID)
- .set(data,{merge:true});
+ await db.collection("players").doc(playerUID)
+ .set({...data,name:playerName},{merge:true});
 }
-Object.freeze(firebase);
-Object.freeze(db);
-
 </script>
 </body>
 </html>
-
-
-
-
-
-
-
-
-
-
