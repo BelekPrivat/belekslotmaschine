@@ -95,6 +95,7 @@ firebase.initializeApp({
   projectId: "slot-maschine-2",
 });
  const auth = firebase.auth();
+ auth.signInAnonymously().catch(console.error);
 
 auth.onAuthStateChanged(async user => {
   if (!user) return;
@@ -115,8 +116,13 @@ const INCOME_PER_MIN=50,INTERVAL=60000;
  
 let playerUID = null;
 
-let playerName=localStorage.getItem("player_name")||prompt("Spielername:");
-localStorage.setItem("player_name",playerName);
+let playerName = localStorage.getItem("player_name");
+
+while (!playerName || playerName.length < 3 || playerName.length > 10) {
+  playerName = prompt("Spielername (3–10 Zeichen):");
+}
+
+localStorage.setItem("player_name", playerName);
 
 let data={balance:5000,bet:50,lastIncome:Date.now()};
 let jackpotValue=5000,spinning=false;
@@ -142,7 +148,6 @@ async function init(){
  updateUI();
  loadLeaderboard();
 }
-init();
 
 /* ===== LEADERBOARD (ALLE 5s) ===== */
 async function loadLeaderboard(){
@@ -278,6 +283,7 @@ Object.freeze(db);
 </script>
 </body>
 </html>
+
 
 
 
