@@ -96,7 +96,11 @@ firebase.initializeApp({
 });
  const auth = firebase.auth();
 
-auth.signInAnonymously().catch(console.error);
+auth.onAuthStateChanged(async user => {
+  if (!user) return;
+  playerUID = user.uid;
+  await init();
+});
 
 const db=firebase.firestore();
  
@@ -108,6 +112,8 @@ const SYMBOLS=["🍒","🍋","🍊","🔔","⭐","7️⃣","💎"];
 const PAYTABLE={"🍒":10,"🍋":30,"🍊":50,"🔔":75,"⭐":100,"7️⃣":150};
 
 const INCOME_PER_MIN=50,INTERVAL=60000;
+ 
+let playerUID = null;
 
 let playerName=localStorage.getItem("player_name")||prompt("Spielername:");
 localStorage.setItem("player_name",playerName);
@@ -120,10 +126,19 @@ let winLog=[];
 async function init(){
  const jp=await jackpotRef.get();
  if(jp.exists) jackpotValue=jp.data().value;
- const ref=db.collection("players").doc(playerName);
+ const ref=db.collection("players").doc(playerUID);
  const d=await ref.get();
- if(d.exists)data={...data,...d.data()};
- else await ref.set(data);
+ if (d.exists) {
+  data = { ...data, ...d.data() };
+
+  if (!d.data().name) {
+    await ref.set({ name: playerName }, { merge: true });
+  }
+}
+ else await ref.set({
+  ...data,
+  name: playerName
+});
  updateUI();
  loadLeaderboard();
 }
@@ -131,16 +146,29 @@ init();
 
 /* ===== LEADERBOARD (ALLE 5s) ===== */
 async function loadLeaderboard(){
- const snap=await db.collection("players").orderBy("balance","desc").limit(10).get();
- leaderboardList.innerHTML="";
- let i=1;
- snap.forEach(d=>{
-  let c=i==1?"lb-1":i==2?"lb-2":i==3?"lb-3":"";
-  if(d.id===playerName)c+=" lb-self";
-  leaderboardList.innerHTML+=`<div class="${c}"><span>${i}. ${d.id}</span><span>${d.data().balance} €</span></div>`;
-  i++;
- });
+  const snap = await db
+    .collection("players")
+    .orderBy("balance","desc")
+    .limit(10)
+    .get();
+
+  leaderboardList.innerHTML = "";
+  let i = 1;
+
+  snap.forEach(d => {
+    let c = i==1?"lb-1":i==2?"lb-2":i==3?"lb-3":"";
+    if(d.id === playerUID) c += " lb-self";
+
+    leaderboardList.innerHTML += `
+      <div class="${c}">
+        <span>${i}. ${d.data().name}</span>
+        <span>${d.data().balance} €</span>
+      </div>
+    `;
+    i++;
+  });
 }
+
 setInterval(loadLeaderboard,5000);
 
 /* ===== EINKOMMEN (LOKAL) ===== */
@@ -241,13 +269,14 @@ function allIn(){
 }
 async function savePlayer(){
  await db.collection("players")
- .doc(playerName)
+ .doc(playerUID)
  .set(data,{merge:true});
 }
 
 </script>
 </body>
 </html>
+
 
 
 
